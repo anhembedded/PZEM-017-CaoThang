@@ -13,7 +13,6 @@
 
 /*/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////*/////////////*/
 
-
 /* 1- PZEM-017 DC Energy Meter */
 
 #include <ModbusMaster.h>                   // Load the (modified) library for modbus communication command codes. Kindly install at our website.
@@ -38,8 +37,9 @@ int page = 1;                               /* display different pages on LCD Di
 
 /* 2 - LCD Display  */
 
-#include<LiquidCrystal.h>                   /* Load the liquid Crystal Library (by default already built-it with arduino solftware)*/
-LiquidCrystal LCD(8, 9, 4, 5, 6, 7);        /* Creating the LiquidCrystal object named LCD. The pin may be varies based on LCD module that you use*/
+#include <LiquidCrystal_I2C.h>               /* Load the liquid Crystal Library (by default already built-it with arduino solftware)*/
+
+LiquidCrystal_I2C LCD(0x27,16,2);  // set the LCD address to 0x27 for a 16 chars and 2 line display
 unsigned long startMillisLCD;               /* start counting time for LCD Display */
 unsigned long currentMillisLCD;             /* current counting time for LCD Display */
 const unsigned long periodLCD = 1000;       /* refresh every X seconds (in seconds) in LED Display. Default 1000 = 1 second */
@@ -76,8 +76,9 @@ void setup()
   delay(1000);                                /* after everything done, wait for 1 second */
 
   /* 2 - LCD Display  */
-
-  LCD.begin(16, 2);                           /* Tell Arduino that our LCD has 16 columns and 2 rows*/
+ LCD.init();                      // initialize the lcd 
+  // Print a message to the LCD.
+  LCD.backlight();
   LCD.setCursor(0, 0);                        /* Set LCD to start with upper left corner of display*/
   startMillisLCD = millis();                  /* Start counting time for display refresh time*/
 
@@ -85,98 +86,6 @@ void setup()
 
 void loop()
 {
-
-  /* 0- General */
-
-  /* 0.1- Button Function */
-
-  int buttonRead;
-  buttonRead = analogRead (0);                                                                      // Read analog pin A0. Pin A0 automatically assigned for LCD Display Button function (cannot be changed)
-
-  /*Right button is pressed */
-  if (buttonRead < 60)
-  {
-    LCD.setCursor(0, 0); LCD.print (" PRESS <SELECT> ");
-    LCD.setCursor(0, 1); LCD.print ("TO RESET ENERGY ");
-  }
-
-  /* Up button is pressed */
-  else if (buttonRead < 200)
-  {
-    LCD.setCursor(0, 0); LCD.print (" PRESS <SELECT> ");
-    LCD.setCursor(0, 1); LCD.print ("TO RESET ENERGY ");
-  }
-
-  /* Down button is pressed */
-  else if (buttonRead < 400)
-  {
-    LCD.setCursor(0, 0); LCD.print (" PRESS <SELECT> ");
-    LCD.setCursor(0, 1); LCD.print ("TO RESET ENERGY ");
-  }
-
-  /* Left button is pressed */
-  else if (buttonRead < 600)
-  {
-    if (ResetEnergy == 0)
-    {
-      LCD.setCursor(0, 0); LCD.print (" PRESS <SELECT> ");
-      LCD.setCursor(0, 1); LCD.print ("TO RESET ENERGY ");
-    }
-    if (ResetEnergy == 1)                                                                         /* only to run reset energy if left button is pressed after select button*/
-    {
-      page = 2;
-    }
-  }
-
-  /* Select button is pressed */
-  else if (buttonRead < 800)
-  {
-    ResetEnergy = 1;                                                                            // to activate offset for power
-    startMillisEnergy = millis();                                                               /* start counting time for pending response*/
-  }
-
-  /* After Select button is pressed */
-  if (ResetEnergy == 1)
-  {
-    LCD.setCursor(0, 0);                                                                          /* set display words starting at upper left corner*/
-    LCD.print ("RESET ENERGY ?  ");
-    LCD.setCursor(0, 1);                                                                          /* set display words starting at lower left corner*/
-    LCD.print ("PRESS < LEFT >  ");
-    currentMillisEnergy = millis();
-    if (( currentMillisEnergy - startMillisEnergy <= 5000) && (page == 2))                        /* if within 5 seconds <left> button is pressed, do reset energy*/
-    {
-
-      // Reset energy
-
-      uint16_t u16CRC = 0xFFFF;                                                                         /* declare CRC check 16 bits*/
-      static uint8_t resetCommand = 0x42;                                                               /* reset command code*/
-      uint8_t slaveAddr = 0X01;
-      u16CRC = crc16_update(u16CRC, slaveAddr);
-      u16CRC = crc16_update(u16CRC, resetCommand);
-      Serial.println("Resetting Energy");
-      preTransmission();                                                                                /* trigger transmission mode*/
-      Serial3.write(slaveAddr);                                                                         /* send device address in 8 bit*/
-      Serial3.write(resetCommand);                                                                      /* send reset command */
-      Serial3.write(lowByte(u16CRC));                                                                   /* send CRC check code low byte  (1st part) */
-      Serial3.write(highByte(u16CRC));                                                                  /* send CRC check code high byte (2nd part) */
-      delay(10);
-      postTransmission();                                                                               /* trigger reception mode*/
-      delay(100);
-      while (Serial3.available())                                                                       /* while receiving signal from Serial3 from meter and converter */
-      {
-        Serial.print(char(Serial3.read()), HEX);                                                      /* Prints the response and display on Serial Monitor (Serial)*/
-        Serial.print(" ");
-      }
-      ResetEnergy = 0;                                                                          /* reset command switch back to default*/
-      page = 1;                                                                                 /* go back to page 1 after reset*/
-    }
-
-    if (( currentMillisEnergy - startMillisEnergy > 5000) && (page != 2))                         /* if more than 5 seconds <Left> button does not pressed, go back to main page*/
-    {
-      ResetEnergy = 0;                                                                          /* reset command switch back to default*/
-      page = 1;                                                                                 /* go back to page 1 after reset*/
-    }
-  }
 
 
   /* 1- PZEM-017 DC Energy Meter */
@@ -201,11 +110,11 @@ void loop()
       PZEMEnergy = tempdouble;
 
       Serial.print(M, 1);                                                               /* Print Voltage value on Serial Monitor with 1 decimal*/
-      Serial.print("V   ");
-      Serial.print(PZEMCurrent, 3);
-      Serial.print("A   ");
-      Serial.print(PZEMPower, 1);
-      Serial.print("W  ");
+      Serial.print(" M   ");
+      Serial.print(PZEMVoltage, 1);
+      Serial.print(" V   ");
+      Serial.print(PZEMCurrent, 1);
+      Serial.print("A  ");
       Serial.print(PZEMEnergy, 0);
       Serial.print("Wh  ");
       Serial.println();
@@ -225,23 +134,25 @@ void loop()
 
   /* 2 - LCD Display  */
 
-  currentMillisLCD = millis();                                                                      /* Set counting time for LCD Display*/
+  currentMillisLCD = millis();   
+                                                                   /* Set counting time for LCD Display*/
   if (currentMillisLCD - startMillisLCD >= periodLCD)                                               /* for every x seconds, run the codes below*/
   {
     if ( page == 1)
     {
       LCD.setCursor(0, 0);                                                                          /* Set cursor to first colum 0 and second row 1  */
       LCD.print(M, 1);                                                                    /* Display Voltage on LCD Display with 1 decimal*/
-      LCD.print("V    ");
+      LCD.print(" M    ");
       LCD.setCursor(9, 0);
-      LCD.print(PZEMEnergy, 0);
-      LCD.print("Wh   ");
-      LCD.setCursor(0, 1);
-      LCD.print(PZEMCurrent, 2);
-      LCD.print("A    ");
-      LCD.setCursor(9, 1);
-      LCD.print(PZEMPower, 1);
-      LCD.print("W     ");
+      LCD.print(PZEMVoltage, 1);
+      LCD.print(" V   ");
+
+      // LCD.setCursor(0, 1);
+      // LCD.print(PZEMCurrent, 2);
+      // LCD.print("A    ");
+      // LCD.setCursor(9, 1);
+      // LCD.print(PZEMPower, 1);
+      // LCD.print("W     ");
       startMillisLCD = currentMillisLCD ;                                                           /* Set the starting point again for next counting time */
     }
   }
