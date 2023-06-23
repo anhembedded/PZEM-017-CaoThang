@@ -25,13 +25,13 @@ static uint16_t NewshuntAddr = 0x0002;      // Declare your external shunt value
 ModbusMaster node;                          /* activate modbus master codes*/
 float PZEMVoltage = 0;                      /* Declare value for DC voltage */
 float PZEMCurrent = 0;                      /* Declare value for DC current*/
-// float PZEMPower = 0;                        /* Declare value for DC Power */
-// float PZEMEnergy = 0;                       /* Declare value for DC Energy */
+ float PZEMPower = 0;                        /* Declare value for DC Power */
+ float PZEMEnergy = 0;                       /* Declare value for DC Energy */
 float M = 0.F;                              /* Mn variable */
 constexpr auto _12Div24 = 12.0F/24.0F;
 unsigned long startMillisPZEM;              /* start counting time for LCD Display */
 unsigned long currentMillisPZEM;            /* current counting time for LCD Display */
-const unsigned long periodPZEM = 1000;      // refresh every X seconds (in seconds) in LED Display. Default 1000 = 1 second
+const unsigned long periodPZEM = 500;      // refresh every X seconds (in seconds) in LED Display. Default 1000 = 1 second
 int page = 1;                               /* display different pages on LCD Display*/
 
 
@@ -110,9 +110,9 @@ void loop()
       PZEMEnergy = tempdouble;
 
       Serial.print(M, 1);                                                               /* Print Voltage value on Serial Monitor with 1 decimal*/
-      Serial.print(" Nm   ");
+      Serial.print("Nm   ");
       Serial.print(PZEMVoltage, 1);
-      Serial.print(" V   ");
+      Serial.print("V   ");
       // Serial.print(PZEMCurrent, 1);
       // Serial.print("A  ");
       // Serial.print(PZEMEnergy, 0);
@@ -140,12 +140,13 @@ void loop()
   {
     if ( page == 1)
     {
-      LCD.setCursor(0, 0);                                                                          /* Set cursor to first colum 0 and second row 1  */
+      LCD.setCursor(0, 0);  
+      LCD.print("M=");                                                                     /* Set cursor to first colum 0 and second row 1  */
       LCD.print(M, 1);                                                                    /* Display Voltage on LCD Display with 1 decimal*/
-      LCD.print(" Nm    ");
-      LCD.setCursor(9, 0);
+      LCD.print("Nm    ");
+      LCD.setCursor(11, 0);
       LCD.print(PZEMVoltage, 1);
-      LCD.print(" V   ");
+      LCD.print("V   ");
 
       // LCD.setCursor(0, 1);
       // LCD.print(PZEMCurrent, 2);
